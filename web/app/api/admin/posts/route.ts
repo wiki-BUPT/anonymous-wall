@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/src/lib/supabaseAdmin'
 import { NextResponse } from 'next/server'
+import { getSession } from '@/src/lib/auth'
 
 function toPositiveInt(value: string | null, fallback: number) {
   const n = Number(value)
@@ -16,9 +17,12 @@ function isAllowedTag(tag: string | null | undefined): tag is AllowedTag {
 }
 
 export async function GET(req: Request) {
-  const url = new URL(req.url)
-  const admin_id = url.searchParams.get('admin_id') || ''
+  const session = await getSession()
+  if (!session || session.role !== 1) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
+  const url = new URL(req.url)
   const page = toPositiveInt(url.searchParams.get('page'), 1)
   const limit = Math.min(toPositiveInt(url.searchParams.get('limit'), 10), 50)
   const from = (page - 1) * limit
@@ -27,22 +31,9 @@ export async function GET(req: Request) {
   const tag = url.searchParams.get('tag') || null
   const keyword = url.searchParams.get('keyword') || null
 
-  if (!admin_id) return NextResponse.json({ error: 'Missing admin_id' }, { status: 400 })
-
-  const { data: adminUser, error: adminErr } = await supabaseAdmin
-    .from('users')
-    .select('role')
-    .eq('user_id', admin_id)
-    .single()
-
-  if (adminErr) return NextResponse.json({ error: adminErr.message }, { status: 500 })
-  if (!adminUser || adminUser.role !== 1) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-
   let query = supabaseAdmin
     .from('posts')
-    .select('post_id, author_id, content, tag, bg_color, likes_count, status, created_at')
+    .select('post_id, author_id, content, tag, bg_color, likes_count, comments_count, is_anonymous, anonymous_name, status, created_at')
     .order('created_at', { ascending: false })
     .range(from, to)
 
@@ -77,6 +68,9 @@ export async function GET(req: Request) {
     tag: p.tag,
     bg_color: p.bg_color,
     likes_count: p.likes_count,
+    comments_count: p.comments_count,
+    is_anonymous: p.is_anonymous,
+    anonymous_name: p.anonymous_name,
     status: p.status,
     created_at: p.created_at,
   }))

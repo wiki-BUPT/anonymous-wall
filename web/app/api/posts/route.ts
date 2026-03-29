@@ -1,5 +1,7 @@
 import { supabaseAdmin } from '@/src/lib/supabaseAdmin'
 import { NextResponse } from 'next/server'
+import { getSession } from '@/src/lib/auth'
+import { generateIdentity } from '@/src/lib/identity'
 
 function toPositiveInt(value: string | null, fallback: number) {
   const n = Number(value)
@@ -29,7 +31,7 @@ export async function GET(req: Request) {
   // MVP：使用 service_role 直连并在代码里强制过滤 status=1
   let query = supabaseAdmin
     .from('posts')
-    .select('post_id, content, tag, bg_color, likes_count, created_at')
+    .select('post_id, content, tag, bg_color, likes_count, comments_count, created_at, is_anonymous, anonymous_name, anonymous_avatar')
     .eq('status', 1)
     .order('created_at', { ascending: false })
     .range(from, to)
@@ -55,11 +57,16 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const session = await getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   type CreatePostBody = {
-    author_id?: string
     content?: string
     tag?: string
     bg_color?: string
+    is_anonymous?: boolean
   }
 
   const text = await req.text().catch(() => '')
@@ -73,14 +80,11 @@ export async function POST(req: Request) {
   })()
   const body = parsed as CreatePostBody | undefined
 
-  const author_id = body?.author_id
+  const author_id = session.user_id
   const content = String(body?.content ?? '')
   const tag = body?.tag ?? null
   const bg_color = String(body?.bg_color ?? '')
-
-  if (!author_id) {
-    return NextResponse.json({ error: 'Missing author_id' }, { status: 400 })
-  }
+  const is_anonymous = body?.is_anonymous ?? true
 
   const trimmed = content.trim()
   if (!trimmed) return NextResponse.json({ error: 'Missing content' }, { status: 400 })
@@ -94,6 +98,15 @@ export async function POST(req: Request) {
   if (!trimmedBg) return NextResponse.json({ error: 'Missing bg_color' }, { status: 400 })
   if (trimmedBg.length > 32) return NextResponse.json({ error: 'bg_color too long' }, { status: 400 })
 
+  let anonymous_name = null
+  let anonymous_avatar = null
+
+  if (is_anonymous) {
+    const identity = generateIdentity()
+    anonymous_name = identity.name
+    anonymous_avatar = identity.avatar
+  }
+
   const { data, error } = await supabaseAdmin
     .from('posts')
     .insert({
@@ -102,8 +115,12 @@ export async function POST(req: Request) {
       tag,
       bg_color: trimmedBg,
       status: 1,
+      is_anonymous,
+      anonymous_name,
+      anonymous_avatar,
+      comments_count: 0
     })
-    .select('post_id, content, tag, bg_color, likes_count, created_at')
+    .select('post_id, content, tag, bg_color, likes_count, comments_count, created_at, is_anonymous, anonymous_name, anonymous_avatar')
     .single()
 
   if (error) {
