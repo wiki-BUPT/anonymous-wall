@@ -10,6 +10,7 @@ create table if not exists public.users (
   student_id text not null unique,
   password_hash text not null,
   role integer not null default 0,
+  status integer not null default 1,
   created_at timestamptz not null default now()
 );
 

@@ -126,15 +126,16 @@ export default function AdminPage() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
         {/* 数据看板 */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-zinc-100 flex items-center gap-4">
+          <Link href="/admin/users" className="bg-white p-6 rounded-3xl shadow-sm border border-zinc-100 flex items-center gap-4 hover:border-blue-200 hover:bg-blue-50/30 transition-colors">
             <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-500">
               <Users className="w-6 h-6" />
             </div>
             <div>
               <div className="text-sm text-zinc-500 font-medium">总用户数</div>
               <div className="text-2xl font-semibold mt-1">{stats?.users ?? '-'}</div>
+              <div className="text-xs text-blue-600 mt-1">点击进入用户管理</div>
             </div>
-          </div>
+          </Link>
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-zinc-100 flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center text-green-500">
               <FileText className="w-6 h-6" />

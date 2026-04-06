@@ -14,7 +14,7 @@ export async function POST(req: Request) {
 
     const { data: user, error } = await supabaseAdmin
       .from('users')
-      .select('user_id, student_id, role, password_hash')
+    .select('user_id, student_id, role, status, password_hash')
       .eq('student_id', student_id)
       .single()
 
@@ -25,6 +25,10 @@ export async function POST(req: Request) {
     if (user.password_hash !== password_hash) {
       return NextResponse.json({ error: '密码错误' }, { status: 401 })
     }
+
+  if (user.status !== 1) {
+    return NextResponse.json({ error: '账号已被封禁' }, { status: 403 })
+  }
 
     await setSession({
       user_id: user.user_id,

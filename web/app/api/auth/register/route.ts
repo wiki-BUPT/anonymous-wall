@@ -18,6 +18,7 @@ export async function POST(req: Request) {
       .insert({
         student_id,
         password_hash,
+        status: 1,
         role: student_id === 'admin' ? 1 : 0 // 如果学号是 admin，则自动成为管理员
       })
       .select('user_id, student_id, role')

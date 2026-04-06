@@ -28,3 +28,7 @@ CREATE TABLE IF NOT EXISTS public.post_anonymous_identities (
 
 -- 4. 补充索引以提升查询性能
 CREATE INDEX IF NOT EXISTS post_anonymous_identities_post_id_idx ON public.post_anonymous_identities(post_id);
+
+-- 5. users 表补充状态字段，用于管理员封禁用户
+ALTER TABLE public.users
+ADD COLUMN IF NOT EXISTS status integer NOT NULL DEFAULT 1;
